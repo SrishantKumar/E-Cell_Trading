@@ -60,9 +60,14 @@ export function useGameState() {
 
     fetchGameState()
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes with error handling
     const channel = supabase
-      .channel("market_state_changes")
+      .channel("market_state_changes", {
+        config: {
+          broadcast: { self: true },
+          presence: { key: "" },
+        },
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "market_state" }, (payload) => {
         const data = payload.new as MarketState
         setGameState({
@@ -72,7 +77,21 @@ export function useGameState() {
           roundTimeRemaining: calculateRoundTimeRemaining(data),
         })
       })
-      .subscribe()
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[GameState] Realtime connected")
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("[GameState] Realtime error, reconnecting...")
+          setTimeout(() => {
+            channel.subscribe()
+          }, 2000)
+        } else if (status === "TIMED_OUT") {
+          console.error("[GameState] Connection timed out, reconnecting...")
+          setTimeout(() => {
+            channel.subscribe()
+          }, 2000)
+        }
+      })
 
     // Timer for countdown
     const timer = setInterval(() => {
@@ -88,7 +107,7 @@ export function useGameState() {
       supabase.removeChannel(channel)
       clearInterval(timer)
     }
-  }, [supabase, calculateTimeRemaining])
+  }, [supabase, calculateTimeRemaining, calculateRoundTimeRemaining])
 
   const updateGameState = useCallback(
     async (updates: Partial<{ status: GameState["status"] }>) => {

@@ -41,9 +41,14 @@ export function useMarket() {
 
     fetchMarket()
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes with error handling and reconnection
     const channel = supabase
-      .channel("market_changes")
+      .channel("market_changes", {
+        config: {
+          broadcast: { self: true },
+          presence: { key: "" },
+        },
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "market_state" }, (payload) => {
         const data = payload.new as MarketState
         const priceHistory = Array.isArray(data.price_history) ? data.price_history : []
@@ -54,7 +59,22 @@ export function useMarket() {
           crashTurnsRemaining: prev.crashTurnsRemaining,
         }))
       })
-      .subscribe()
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[Market] Realtime connected")
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("[Market] Realtime error, reconnecting...")
+          // Retry connection after 2 seconds
+          setTimeout(() => {
+            channel.subscribe()
+          }, 2000)
+        } else if (status === "TIMED_OUT") {
+          console.error("[Market] Connection timed out, reconnecting...")
+          setTimeout(() => {
+            channel.subscribe()
+          }, 2000)
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)

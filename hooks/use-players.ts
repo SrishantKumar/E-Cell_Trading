@@ -31,14 +31,33 @@ export function usePlayers() {
 
     fetchPlayers()
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes with error handling
     const channel = supabase
-      .channel("teams_changes")
+      .channel("teams_changes", {
+        config: {
+          broadcast: { self: true },
+          presence: { key: "" },
+        },
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, () => {
         // Refetch all players to ensure correct ordering
         fetchPlayers()
       })
-      .subscribe()
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[Players] Realtime connected")
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("[Players] Realtime error, reconnecting...")
+          setTimeout(() => {
+            channel.subscribe()
+          }, 2000)
+        } else if (status === "TIMED_OUT") {
+          console.error("[Players] Connection timed out, reconnecting...")
+          setTimeout(() => {
+            channel.subscribe()
+          }, 2000)
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)
