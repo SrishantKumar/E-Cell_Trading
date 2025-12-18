@@ -16,6 +16,7 @@ import { JoinGameForm } from "@/components/game/join-game-form"
 import { FrozenOverlay } from "@/components/game/frozen-overlay"
 import { MiniLeaderboard } from "@/components/game/mini-leaderboard"
 import { SabotagePanel } from "@/components/game/sabotage-panel"
+import { WinnerAnnouncement } from "@/components/game/winner-announcement"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const BLIZZARD_COST = 5000
@@ -179,6 +180,12 @@ export default function PlayPage() {
           </Card>
         )}
       </div>
+
+      {/* Winner Announcement - Shows when Round 3 ends */}
+      <WinnerAnnouncement
+        players={players}
+        show={gameState.status === "ended" && gameState.currentRound === 3}
+      />
     </main>
   )
 }

@@ -14,6 +14,7 @@ import { MarketStats } from "@/components/admin/market-stats"
 import { PriceChart } from "@/components/game/price-chart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdminLogin } from "@/components/admin/admin-login"
+import { WinnerAnnouncement } from "@/components/game/winner-announcement"
 import type { News } from "@/lib/types"
 
 export default function AdminPage() {
@@ -224,6 +225,12 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Winner Announcement - Shows when Round 3 ends */}
+      <WinnerAnnouncement
+        players={players}
+        show={gameState.status === "ended" && gameState.currentRound === 3}
+      />
     </main>
   )
 }
