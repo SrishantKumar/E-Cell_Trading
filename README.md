@@ -31,7 +31,7 @@ A real-time multiplayer stock trading simulation game built for E-Cell NITA comp
 - **Live Analytics**: Real-time price charts, market stats, player rankings
 
 ### 🔒 Security
-- Password-protected admin dashboard (default: `ecell2024`)
+- Password-protected admin dashboard
 - Session-based authentication
 - Supabase Row Level Security (RLS)
 

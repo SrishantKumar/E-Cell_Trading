@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useCallback } from "react"
+import { useEffect, useCallback, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useGameState } from "@/hooks/use-game-state"
 import { useMarket } from "@/hooks/use-market"
@@ -17,6 +17,7 @@ import { FrozenOverlay } from "@/components/game/frozen-overlay"
 import { MiniLeaderboard } from "@/components/game/mini-leaderboard"
 import { SabotagePanel } from "@/components/game/sabotage-panel"
 import { WinnerAnnouncement } from "@/components/game/winner-announcement"
+import { RoundCompletionMessage } from "@/components/game/round-completion-message"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const BLIZZARD_COST = 5000
@@ -27,6 +28,8 @@ export default function PlayPage() {
   const { player, playerId, joinGame, buyStock, sellStock, updateNetWorth, loading: playerLoading } = usePlayer()
   const { players } = usePlayers()
   const { news, showNews } = useNews()
+  const [showRoundComplete, setShowRoundComplete] = useState(false)
+  const [completedRound, setCompletedRound] = useState(0)
   const supabase = createClient()
 
   // Update net worth when price changes
@@ -64,6 +67,20 @@ export default function PlayPage() {
     },
     [player, playerId, supabase, market.currentPrice],
   )
+
+  // Monitor for round completion
+  useEffect(() => {
+    if (gameState.status === "paused" && gameState.currentRound < 3 && gameState.currentRound > 0) {
+      // Show round completion message when game is paused between rounds
+      if (gameState.currentRound !== completedRound) {
+        setCompletedRound(gameState.currentRound)
+        setShowRoundComplete(true)
+      }
+    } else if (gameState.status === "active") {
+      // Hide message when round is active
+      setShowRoundComplete(false)
+    }
+  }, [gameState.status, gameState.currentRound, completedRound])
 
   // Show loading state
   if (gameLoading || marketLoading || playerLoading) {
@@ -180,6 +197,13 @@ export default function PlayPage() {
           </Card>
         )}
       </div>
+
+      {/* Round Completion Message */}
+      <RoundCompletionMessage
+        currentRound={completedRound}
+        show={showRoundComplete}
+        onClose={() => setShowRoundComplete(false)}
+      />
 
       {/* Winner Announcement - Shows when Round 3 ends */}
       <WinnerAnnouncement

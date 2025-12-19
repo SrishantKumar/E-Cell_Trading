@@ -15,6 +15,7 @@ import { PriceChart } from "@/components/game/price-chart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdminLogin } from "@/components/admin/admin-login"
 import { WinnerAnnouncement } from "@/components/game/winner-announcement"
+import { RoundCompletionMessage } from "@/components/game/round-completion-message"
 import type { News } from "@/lib/types"
 
 export default function AdminPage() {
@@ -24,6 +25,8 @@ export default function AdminPage() {
   const { players, freezePlayer, giveStimulusToAll } = usePlayers()
   const { sendNews } = useNews()
   const [isLoopRunning, setIsLoopRunning] = useState(false)
+  const [showRoundComplete, setShowRoundComplete] = useState(false)
+  const [completedRound, setCompletedRound] = useState(0)
   const supabase = createClient()
 
   const {
@@ -58,6 +61,20 @@ export default function AdminPage() {
   useEffect(() => {
     return () => stopLoop()
   }, [stopLoop])
+
+  // Monitor for round completion
+  useEffect(() => {
+    if (gameState.status === "paused" && gameState.currentRound < 3 && gameState.currentRound > 0) {
+      // Show round completion message when game is paused between rounds
+      if (gameState.currentRound !== completedRound) {
+        setCompletedRound(gameState.currentRound)
+        setShowRoundComplete(true)
+      }
+    } else if (gameState.status === "active") {
+      // Hide message when round is active
+      setShowRoundComplete(false)
+    }
+  }, [gameState.status, gameState.currentRound, completedRound])
 
   const handleStartGame = async () => {
     await supabase
@@ -118,6 +135,9 @@ export default function AdminPage() {
       .eq("id", 1)
 
     sendNews(`Round ${nextRound} has started! Good luck traders! 🚀`, "BOOST")
+
+    // Hide round completion message when starting next round
+    setShowRoundComplete(false)
   }
 
   const handleSendNews = (headline: string, effect: News["effect"]) => {
@@ -225,6 +245,13 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Round Completion Message */}
+      <RoundCompletionMessage
+        currentRound={completedRound}
+        show={showRoundComplete}
+        onClose={() => setShowRoundComplete(false)}
+      />
 
       {/* Winner Announcement - Shows when Round 3 ends */}
       <WinnerAnnouncement
